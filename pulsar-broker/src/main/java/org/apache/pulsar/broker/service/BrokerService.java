@@ -2434,28 +2434,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
      * @return TopicPolicies is exist else return null.
      */
     public TopicPolicies getTopicPolicies(TopicName topicName) {
-        TopicName cloneTopicName = topicName;
-        if (topicName.isPartitioned()) {
-            cloneTopicName = TopicName.get(topicName.getPartitionedTopicName());
-        }
-        try {
-            checkTopicLevelPolicyEnable();
-            return pulsar.getTopicPoliciesService().getTopicPolicies(cloneTopicName);
-        } catch (BrokerServiceException.TopicPoliciesCacheNotInitException e) {
-            log.warn("Topic {} policies cache have not init.", topicName.getPartitionedTopicName());
-            return null;
-        } catch (RestException | NullPointerException e) {
-            log.warn("Topic level policies are not enabled. " +
-                    "Please refer to systemTopicEnabled and topicLevelPoliciesEnabled on broker.conf");
-            return null;
-        }
-    }
-
-    private void checkTopicLevelPolicyEnable() {
-        if (!pulsar().getConfig().isTopicLevelPoliciesEnabled()) {
-            throw new RestException(Response.Status.METHOD_NOT_ALLOWED,
-                    "Topic level policies is disabled, to enable the topic level policy and retry.");
-        }
+        return null;
     }
 
     public void setInterceptor(BrokerInterceptor interceptor) {

@@ -313,7 +313,7 @@ public interface PulsarClient extends Closeable {
      * @return a {@link TransactionBuilder} object to configure and construct
      * the {@link org.apache.pulsar.client.api.transaction.Transaction} instance
      *
-     * @since 2.7.0
+     * @since 2.7.0-hw-0.0.1
      */
     TransactionBuilder newTransaction();
 }

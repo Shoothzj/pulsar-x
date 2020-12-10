@@ -384,7 +384,7 @@ public interface Consumer<T> extends Closeable {
      *             broker don't support transaction
      * @return {@link CompletableFuture} the future of the ack result
      *
-     * @since 2.7.0
+     * @since 2.7.0-hw-0.0.1
      */
     CompletableFuture<Void> acknowledgeCumulativeAsync(MessageId messageId,
                                                        Transaction txn);
@@ -439,7 +439,7 @@ public interface Consumer<T> extends Closeable {
      *             don't find batch size in consumer pending ack
      * @return {@link CompletableFuture} the future of the ack result
      *
-     * @since 2.7.0
+     * @since 2.7.0-hw-0.0.1
      */
     CompletableFuture<Void> acknowledgeAsync(MessageId messageId, Transaction txn);
 

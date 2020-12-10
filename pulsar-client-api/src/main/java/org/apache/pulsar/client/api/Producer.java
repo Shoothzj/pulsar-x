@@ -129,7 +129,7 @@ public interface Producer<T> extends Closeable {
      * @return a typed message builder that can be used to construct the message to be sent through this producer
      * @see #newMessage()
      *
-     * @since 2.7.0
+     * @since 2.7.0-hw-0.0.1
      */
     TypedMessageBuilder<T> newMessage(Transaction txn);
     /**

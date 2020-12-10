@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.ProtocolVersion;
 import org.apache.pulsar.common.protocol.Commands;
 import org.apache.pulsar.common.protocol.schema.SchemaVersion;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.apollo.DebugTopicUtil;
 
 import java.util.List;
 
@@ -245,8 +246,8 @@ public class PulsarCommandSenderImpl implements PulsarCommandSender {
 
     @Override
     public ChannelPromise sendMessagesToConsumer(long consumerId, String topicName, Subscription subscription,
-            int partitionIdx, List<Entry> entries, EntryBatchSizes batchSizes, EntryBatchIndexesAcks batchIndexesAcks,
-            RedeliveryTracker redeliveryTracker) {
+                                                 int partitionIdx, List<Entry> entries, EntryBatchSizes batchSizes, EntryBatchIndexesAcks batchIndexesAcks,
+                                                 RedeliveryTracker redeliveryTracker) {
         final ChannelHandlerContext ctx = cnx.ctx();
         final ChannelPromise writePromise = ctx.newPromise();
         ctx.channel().eventLoop().execute(() -> {
@@ -283,7 +284,10 @@ public class PulsarCommandSenderImpl implements PulsarCommandSender {
                     Commands.skipChecksumIfPresent(metadataAndPayload);
                 }
 
-                if (log.isDebugEnabled()) {
+                if (DebugTopicUtil.contains(topicName)) {
+                    log.info("[{}-{}] Sending message to consumerId {}, msg id {}-{}", topicName, subscription,
+                            consumerId, entry.getLedgerId(), entry.getEntryId());
+                } else if (log.isDebugEnabled()) {
                     log.debug("[{}-{}] Sending message to consumerId {}, msg id {}-{}", topicName, subscription,
                             consumerId, entry.getLedgerId(), entry.getEntryId());
                 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,23 +18,9 @@
  */
 package org.apache.pulsar.client.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.Queues;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import io.netty.util.Timeout;
+import org.apache.pulsar.apollo.DebugTopicUtil;
 import org.apache.pulsar.client.api.BatchReceivePolicy;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerEventListener;
@@ -57,10 +43,27 @@ import org.apache.pulsar.common.util.collections.GrowableArrayBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
 public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T> {
 
-    enum ConsumerType {
-        PARTITIONED, NON_PARTITIONED
+    private static final Logger log = LoggerFactory.getLogger(ConsumerBase.class);
+
+    static {
+        log.info("custom consumer init.");
     }
 
     protected final String subscription;
@@ -112,7 +115,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
                         .timeout((int) userBatchReceivePolicy.getTimeoutMs(), TimeUnit.MILLISECONDS)
                         .build();
                 log.warn("BatchReceivePolicy maxNumMessages: {} is greater than maxReceiverQueueSize: {}, " +
-                        "reset to maxReceiverQueueSize. batchReceivePolicy: {}",
+                                "reset to maxReceiverQueueSize. batchReceivePolicy: {}",
                         userBatchReceivePolicy.getMaxNumMessages(), this.maxReceiverQueueSize,
                         this.batchReceivePolicy.toString());
             } else if (userBatchReceivePolicy.getMaxNumMessages() <= 0 && userBatchReceivePolicy.getMaxNumBytes() <= 0) {
@@ -122,7 +125,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
                         .timeout((int) userBatchReceivePolicy.getTimeoutMs(), TimeUnit.MILLISECONDS)
                         .build();
                 log.warn("BatchReceivePolicy maxNumMessages: {} or maxNumBytes: {} is less than 0. " +
-                        "Reset to DEFAULT_POLICY. batchReceivePolicy: {}", userBatchReceivePolicy.getMaxNumMessages(),
+                                "Reset to DEFAULT_POLICY. batchReceivePolicy: {}", userBatchReceivePolicy.getMaxNumMessages(),
                         userBatchReceivePolicy.getMaxNumBytes(), this.batchReceivePolicy.toString());
             } else {
                 this.batchReceivePolicy = conf.getBatchReceivePolicy();
@@ -399,7 +402,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     @Override
     public CompletableFuture<Void> reconsumeLaterAsync(Messages<?> messages, long delayTime, TimeUnit unit) {
         try {
-            messages.forEach(message -> reconsumeLaterAsync(message,delayTime, unit));
+            messages.forEach(message -> reconsumeLaterAsync(message, delayTime, unit));
             return CompletableFuture.completedFuture(null);
         } catch (NullPointerException npe) {
             return FutureUtil.failedFuture(new PulsarClientException.InvalidMessageException(npe.getMessage()));
@@ -469,7 +472,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     }
 
     protected CompletableFuture<Void> doAcknowledgeWithTxn(List<MessageId> messageIdList, AckType ackType,
-                                                           Map<String,Long> properties,
+                                                           Map<String, Long> properties,
                                                            TransactionImpl txn) {
         CompletableFuture<Void> ackFuture;
         if (txn != null) {
@@ -483,7 +486,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     }
 
     protected CompletableFuture<Void> doAcknowledgeWithTxn(MessageId messageId, AckType ackType,
-                                                           Map<String,Long> properties,
+                                                           Map<String, Long> properties,
                                                            TransactionImpl txn) {
         CompletableFuture<Void> ackFuture;
         if (txn != null && (this instanceof ConsumerImpl)) {
@@ -506,15 +509,15 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     }
 
     protected abstract CompletableFuture<Void> doAcknowledge(MessageId messageId, AckType ackType,
-                                                             Map<String,Long> properties,
+                                                             Map<String, Long> properties,
                                                              TransactionImpl txn);
 
     protected abstract CompletableFuture<Void> doAcknowledge(List<MessageId> messageIdList, AckType ackType,
-                                                    Map<String, Long> properties,
-                                                    TransactionImpl txn);
+                                                             Map<String, Long> properties,
+                                                             TransactionImpl txn);
 
     protected abstract CompletableFuture<Void> doReconsumeLater(Message<?> message, AckType ackType,
-                                                                Map<String,Long> properties,
+                                                                Map<String, Long> properties,
                                                                 long delayTime,
                                                                 TimeUnit unit);
 
@@ -568,17 +571,17 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     protected SubType getSubType() {
         SubscriptionType type = conf.getSubscriptionType();
         switch (type) {
-        case Exclusive:
-            return SubType.Exclusive;
+            case Exclusive:
+                return SubType.Exclusive;
 
-        case Shared:
-            return SubType.Shared;
+            case Shared:
+                return SubType.Shared;
 
-        case Failover:
-            return SubType.Failover;
+            case Failover:
+                return SubType.Failover;
 
-        case Key_Shared:
-            return SubType.Key_Shared;
+            case Key_Shared:
+                return SubType.Key_Shared;
         }
 
         // Should not happen since we cover all cases above
@@ -657,7 +660,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
 
     protected void onAckTimeoutSend(Set<MessageId> messageIds) {
         if (interceptors != null) {
-            interceptors. onAckTimeoutSend(this, messageIds);
+            interceptors.onAckTimeoutSend(this, messageIds);
         }
     }
 
@@ -667,6 +670,19 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     }
 
     protected boolean enqueueMessageAndCheckBatchReceive(Message<T> message) {
+        final String topicName = message.getTopicName();
+        if (DebugTopicUtil.contains(topicName)) {
+            if (message instanceof TopicMessageImpl) {
+                TopicMessageIdImpl messageId = (TopicMessageIdImpl) message.getMessageId();
+                MessageIdImpl innerMessageId = (MessageIdImpl) messageId.getInnerMessageId();
+                log.info("receive msg from pulsar server,topic {},messageId {},publishTime {}", topicName, innerMessageId, message.getPublishTime());
+            } else if (message instanceof MessageImpl) {
+                final MessageIdImpl messageId = (MessageIdImpl) message.getMessageId();
+                log.info("receive msg from pulsar server,topic {},messageId {},publishTime {}", topicName, messageId, message.getPublishTime());
+            }
+        } else {
+            log.debug("other msg {}", message);
+        }
         if (canEnqueueMessage(message) && incomingMessages.offer(message)) {
             INCOMING_MESSAGES_SIZE_UPDATER.addAndGet(
                     this, message.getData() == null ? 0 : message.getData().length);
@@ -689,7 +705,7 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
                 break; // Ok
             case Closing:
             case Closed:
-                throw  new PulsarClientException.AlreadyClosedException("Consumer already closed");
+                throw new PulsarClientException.AlreadyClosedException("Consumer already closed");
             case Terminated:
                 throw new PulsarClientException.AlreadyClosedException("Topic was terminated");
             case Failed:
@@ -703,11 +719,11 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
     private void verifyBatchReceive() throws PulsarClientException {
         if (listener != null) {
             throw new PulsarClientException.InvalidConfigurationException(
-                "Cannot use receive() when a listener has been set");
+                    "Cannot use receive() when a listener has been set");
         }
         if (conf.getReceiverQueueSize() == 0) {
             throw new PulsarClientException.InvalidConfigurationException(
-                "Can't use batch receive, if the queue size is 0");
+                    "Can't use batch receive, if the queue size is 0");
         }
     }
 
@@ -853,5 +869,4 @@ public abstract class ConsumerBase<T> extends HandlerState implements Consumer<T
 
     protected abstract void completeOpBatchReceive(OpBatchReceive<T> op);
 
-    private static final Logger log = LoggerFactory.getLogger(ConsumerBase.class);
 }

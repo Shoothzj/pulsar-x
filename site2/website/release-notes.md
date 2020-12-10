@@ -1,7 +1,7 @@
 
 ## Apache Pulsar Release Notes
 
-### 2.7.0 &mdash; Not Yet Released <a id=“2.7.0”></a>
+### 2.7.0-hw-0.0.1 &mdash; Not Yet Released <a id=“2.7.0-hw-0.0.1”></a>
 
 ##### Upgrade notes
 
