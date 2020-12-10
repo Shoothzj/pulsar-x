@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,24 +18,12 @@
  */
 package org.apache.pulsar.broker.service;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.scurrilous.circe.checksum.Crc32cIntChecksum.computeChecksum;
-import static org.apache.pulsar.broker.service.AbstractReplicator.REPL_PRODUCER_NAME_DELIMITER;
-import static org.apache.pulsar.common.protocol.Commands.hasChecksum;
-import static org.apache.pulsar.common.protocol.Commands.readChecksum;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-
+import org.apache.pulsar.apollo.DebugTopicUtil;
 import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.service.BrokerServiceException.TopicClosedException;
 import org.apache.pulsar.broker.service.BrokerServiceException.TopicTerminatedException;
@@ -54,6 +42,19 @@ import org.apache.pulsar.common.stats.Rate;
 import org.apache.pulsar.common.util.DateFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.scurrilous.circe.checksum.Crc32cIntChecksum.computeChecksum;
+import static org.apache.pulsar.broker.service.AbstractReplicator.REPL_PRODUCER_NAME_DELIMITER;
+import static org.apache.pulsar.common.protocol.Commands.hasChecksum;
+import static org.apache.pulsar.common.protocol.Commands.readChecksum;
 
 /**
  * Represents a currently connected producer
@@ -90,8 +91,8 @@ public class Producer {
     private final SchemaVersion schemaVersion;
 
     public Producer(Topic topic, TransportCnx cnx, long producerId, String producerName, String appId,
-            boolean isEncrypted, Map<String, String> metadata, SchemaVersion schemaVersion, long epoch,
-            boolean userProvidedProducerName) {
+                    boolean isEncrypted, Map<String, String> metadata, SchemaVersion schemaVersion, long epoch,
+                    boolean userProvidedProducerName) {
         this.topic = topic;
         this.cnx = cnx;
         this.producerId = producerId;
@@ -140,14 +141,14 @@ public class Producer {
     }
 
     public void publishMessage(long producerId, long sequenceId, ByteBuf headersAndPayload, long batchSize,
-            boolean isChunked) {
+                               boolean isChunked) {
         if (checkAndStartPublish(producerId, sequenceId, headersAndPayload, batchSize)) {
             publishMessageToTopic(headersAndPayload, sequenceId, batchSize, isChunked);
         }
     }
 
     public void publishMessage(long producerId, long lowestSequenceId, long highestSequenceId,
-            ByteBuf headersAndPayload, long batchSize, boolean isChunked) {
+                               ByteBuf headersAndPayload, long batchSize, boolean isChunked) {
         if (lowestSequenceId > highestSequenceId) {
             cnx.execute(() -> {
                 cnx.getCommandSender().sendSendError(producerId, highestSequenceId, ServerError.MetadataError,
@@ -301,10 +302,12 @@ public class Producer {
         private long highestSequenceId;
         private long originalHighestSequenceId;
 
+        @Override
         public String getProducerName() {
             return producer.getProducerName();
         }
 
+        @Override
         public long getSequenceId() {
             return sequenceId;
         }
@@ -370,7 +373,10 @@ public class Producer {
                     recycle();
                 });
             } else {
-                if (log.isDebugEnabled()) {
+                if (DebugTopicUtil.contains(producer.topic.getName())) {
+                    log.info("[{}] [{}] [{}] triggered send callback. cnx {}, sequenceId {} ledger id entry id [{}]", producer.topic,
+                            producer.producerName, producer.producerId, producer.cnx.clientAddress(), sequenceId, ledgerId + ":" + entryId);
+                } else if (log.isDebugEnabled()) {
                     log.debug("[{}] [{}] [{}] triggered send callback. cnx {}, sequenceId {}", producer.topic,
                             producer.producerName, producer.producerId, producer.cnx.clientAddress(), sequenceId);
                 }
@@ -386,7 +392,10 @@ public class Producer {
          */
         @Override
         public void run() {
-            if (log.isDebugEnabled()) {
+            if (DebugTopicUtil.contains(producer.topic.getName())) {
+                log.info("[{}] [{}] [{}] triggered send callback. cnx {}, sequenceId {} ledger id entry id [{}]", producer.topic,
+                        producer.producerName, producer.producerId, producer.cnx.clientAddress(), sequenceId, ledgerId + ":" + entryId);
+            } else if (log.isDebugEnabled()) {
                 log.debug("[{}] [{}] [{}] Persisted message. cnx {}, sequenceId {}", producer.topic,
                         producer.producerName, producer.producerId, producer.cnx, sequenceId);
             }
@@ -405,7 +414,7 @@ public class Producer {
         }
 
         static MessagePublishContext get(Producer producer, long sequenceId, Rate rateIn, int msgSize,
-                long batchSize, boolean chunked, long startTimeNs) {
+                                         long batchSize, boolean chunked, long startTimeNs) {
             MessagePublishContext callback = RECYCLER.get();
             callback.producer = producer;
             callback.sequenceId = sequenceId;
@@ -420,7 +429,7 @@ public class Producer {
         }
 
         static MessagePublishContext get(Producer producer, long lowestSequenceId, long highestSequenceId, Rate rateIn,
-                int msgSize, long batchSize, boolean chunked, long startTimeNs) {
+                                         int msgSize, long batchSize, boolean chunked, long startTimeNs) {
             MessagePublishContext callback = RECYCLER.get();
             callback.producer = producer;
             callback.sequenceId = lowestSequenceId;
@@ -442,6 +451,7 @@ public class Producer {
         }
 
         private static final Recycler<MessagePublishContext> RECYCLER = new Recycler<MessagePublishContext>() {
+            @Override
             protected MessagePublishContext newObject(Handle<MessagePublishContext> handle) {
                 return new MessagePublishContext(handle);
             }
