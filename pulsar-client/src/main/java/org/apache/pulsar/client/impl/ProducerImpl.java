@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.apollo.DebugTopicUtil;
 import org.apache.pulsar.client.api.BatcherBuilder;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.Message;
@@ -899,8 +900,11 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void ackReceived(ClientCnx cnx, long sequenceId, long highestSequenceId, long ledgerId, long entryId) {
-        OpSendMsg op = null;
+        OpSendMsg op;
         boolean callback = false;
+        if (DebugTopicUtil.contains(topic)) {
+            log.debug("[{}] [{}] Got ack for timed out msg {}", topic, producerName, ledgerId + ":" + entryId);
+        }
         synchronized (this) {
             op = pendingMessages.peek();
             if (op == null) {
@@ -1625,15 +1629,11 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             releaseSemaphoreForSendOp(op);
-            if (op != null) {
-                op.callback.sendComplete(new PulsarClientException(ie, op.sequenceId));
-            }
+            op.callback.sendComplete(new PulsarClientException(ie, op.sequenceId));
         } catch (Throwable t) {
             releaseSemaphoreForSendOp(op);
             log.warn("[{}] [{}] error while closing out batch -- {}", topic, producerName, t);
-            if (op != null) {
-                op.callback.sendComplete(new PulsarClientException(t, op.sequenceId));
-            }
+            op.callback.sendComplete(new PulsarClientException(t, op.sequenceId));
         }
     }
 
