@@ -72,7 +72,6 @@ public class BrokerOperabilityMetrics {
     Metrics getDimensionMetrics(String metricsName, String dimensionName, DimensionStats stats) {
         Map<String, String> dimensionMap = Maps.newHashMap();
         dimensionMap.put("broker", brokerName);
-        dimensionMap.put("cluster", localCluster);
         dimensionMap.put("metric", metricsName);
         Metrics dMetrics = Metrics.create(dimensionMap);
 
